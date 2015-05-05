@@ -8,10 +8,12 @@ x = np.array(mdata['x'])
 y = np.array(mdata['y'])
 t = np.array(mdata['t'])
 N = len(x)
+mdiff = (t - y)*(t - y)
+mvar = (np.sum(mdiff))/N
+print mvar, math.sqrt(mvar)
 
-plt.figure(1)
-plt.plot(x, y, 'r', x, t, 'bo')
 
+# Evaluation of design matrix -----------------------------------------------------
 def basis_functions_eval(xx, MM, op = 'poly'):
 	PHI = np.zeros((len(xx),MM))
 	#print PHI
@@ -25,9 +27,9 @@ def basis_functions_eval(xx, MM, op = 'poly'):
 		if(op == 'poly'):
 			PHI[:, i] = (xx**i)
 		elif(op == 'exp'):
-			PHI[:,i] = exp(-((xx - mu[i])**2.0)/(2.0*s2))
+			PHI[:,i] = np.exp(-((xx - mu[i - 1])**2.0)/(2.0*s2))
 		elif(op == 'tanh'):
-			PHI[:, i] = 1.0/(1.0 + exp(-(xx - mu[i])/(math.sqrt(s2))))
+			PHI[:, i] = 1.0/(1.0 + np.exp(-(xx - mu[i - 1])/(math.sqrt(s2))))
 	return PHI
 
 # Maximum Likelihood ----------------------------------------------------
@@ -57,13 +59,15 @@ def bayes_lin_estim(PHI, tt, alpha, beta):
 	tt = np.matrix(tt)
 	Ia = np.eye(PHI.shape[1])
 	Sn_inv = (alpha*Ia) + (beta*PHIt*PHI)
-	Sn = np.linalg.inv(Sn_inv)
-	mn = beta*Sn*PHIt*tt
+	Sn = np.linalg.inv(Sn_inv)*np.eye(PHI.shape[1])
+	mn = beta*(Sn*PHIt*tt)
+	print mn
+	print Sn
 	return mn, Sn
 
 def maxim_likelihood_2(PHI, tt, niters = 20):
-	alpha = 0.003
-	beta = 1.0
+	alpha = 0.0000000000000003
+	beta = 0.09079
 	PHI = np.matrix(PHI)
 	PHIt = np.transpose(PHI)
 	tt = np.matrix(tt)
@@ -89,10 +93,11 @@ def maxim_likelihood_2(PHI, tt, niters = 20):
 		beta_arr[i] = beta
 		alpha_arr[i] = alpha
 
-	print alpha, beta
+	#alpha = 0.000000000003
+	#beta = 0.09079
 	return alpha,beta
 
-
+# Debugging and cross validation -----------------------------------------------------
 def debug_validation(Ntest, basis_num = 10):
 	index = np.random.permutation(N)
 	xtest = x[index[0:Ntest]]
@@ -103,27 +108,35 @@ def debug_validation(Ntest, basis_num = 10):
 	PHI = basis_functions_eval(x, basis_num)
 
 	# Maximum likelihood
+	#'''
 	Wml = maximum_likelihood_estim(PHItest, ttest)
 	tpredicted_ml = PHI*Wml
-	plt.plot(x, tpredicted_ml, 'y')
+	plt.figure(1)
+	plt.plot(x, y, 'b', x, t, 'bo')
+	plt.plot(x, tpredicted_ml, 'r')
+	#'''
 
 	# Regularization
-	'''
-	Wreg = regularization_estim(PHItest, ttest, lambda_param = 0.000000001)
-	print Wreg
+
+	PHItest = basis_functions_eval(xtest, basis_num)
+	Wreg = regularization_estim(PHItest, ttest, lambda_param = 0.000000000003)
+	#print Wreg
 	tpredicted_reg = PHI*Wreg
-	print tpredicted_reg
-	#plt.plot(x, tpredicted_reg, 'g')
-	'''
+	#print tpredicted_reg
+	plt.figure(2)
+	plt.plot(x, y, 'b', x, t, 'bo')
+	plt.plot(x, tpredicted_reg, 'r')
+
 
 	# Bayesian linear regresion
-	'''
 	PHItest = basis_functions_eval(xtest, basis_num)
 	alpha, beta = maxim_likelihood_2(PHItest, ttest)
 	mn, Sn = bayes_lin_estim(PHItest, ttest, alpha, beta)
 	tpredicted_bay = PHI*mn
-	plt.plot(x, tpredicted_bay, 'g')
-	'''
+	plt.figure(3)
+	plt.plot(x, y, 'b', x, t, 'bo')
+	plt.plot(x, tpredicted_bay, 'r')
 
-debug_validation(50, 20)
+
+debug_validation(200, 20)
 plt.show()
