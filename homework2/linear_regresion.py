@@ -10,7 +10,7 @@ t = np.array(mdata['t'])
 N = len(x)
 mdiff = (t - y)*(t - y)
 mvar = (np.sum(mdiff))/N
-print mvar, math.sqrt(mvar)
+#print mvar, math.sqrt(mvar)
 
 
 # Evaluation of design matrix -----------------------------------------------------
@@ -61,8 +61,8 @@ def bayes_lin_estim(PHI, tt, alpha, beta):
 	Sn_inv = (alpha*Ia) + (beta*PHIt*PHI)
 	Sn = np.linalg.inv(Sn_inv)*np.eye(PHI.shape[1])
 	mn = beta*(Sn*PHIt*tt)
-	print mn
-	print Sn
+	#print mn
+	#print Sn
 	return mn, Sn
 
 def maxim_likelihood_2(PHI, tt, niters = 20):
@@ -97,20 +97,33 @@ def maxim_likelihood_2(PHI, tt, niters = 20):
 	#beta = 0.09079
 	return alpha,beta
 
+# Square error computing -----------------------------------------------------
+
+def squareErrorEval(real_arr, pred_arr):
+	print len(real_arr), len(pred_arr)
+	diff = np.array(real_arr) - np.array(pred_arr)
+	#print real_arr
+	diff = diff ** 2
+	msum = np.sum(diff)
+	error = (msum/len(real_arr)) * 100
+	return error
+
 # Debugging and cross validation -----------------------------------------------------
 def debug_validation(Ntest, basis_num = 10):
 	index = np.random.permutation(N)
 	xtest = x[index[0:Ntest]]
 	ttest = t[index[0:Ntest]]
 	xvalid = x[index[Ntest + 1:N]]
-	tvalid = t[index[Ntest + 1:N]]
+	tvalid = y[index[Ntest + 1:N]]
 	PHItest = basis_functions_eval(xtest, basis_num)
 	PHI = basis_functions_eval(x, basis_num)
+	PHI_valid = basis_functions_eval(xvalid, basis_num)
 
 	# Maximum likelihood
 	#'''
 	Wml = maximum_likelihood_estim(PHItest, ttest)
 	tpredicted_ml = PHI*Wml
+	tpredicted_ml_valid = PHI_valid*Wml
 	plt.figure(1)
 	plt.plot(x, y, 'b', x, t, 'bo')
 	plt.plot(x, tpredicted_ml, 'r')
@@ -120,9 +133,8 @@ def debug_validation(Ntest, basis_num = 10):
 
 	PHItest = basis_functions_eval(xtest, basis_num)
 	Wreg = regularization_estim(PHItest, ttest, lambda_param = 0.000000000003)
-	#print Wreg
 	tpredicted_reg = PHI*Wreg
-	#print tpredicted_reg
+	tpredicted_reg_valid = PHI_valid*Wreg
 	plt.figure(2)
 	plt.plot(x, y, 'b', x, t, 'bo')
 	plt.plot(x, tpredicted_reg, 'r')
@@ -133,10 +145,15 @@ def debug_validation(Ntest, basis_num = 10):
 	alpha, beta = maxim_likelihood_2(PHItest, ttest)
 	mn, Sn = bayes_lin_estim(PHItest, ttest, alpha, beta)
 	tpredicted_bay = PHI*mn
+	tpredicted_bay_valid = PHI_valid*mn
 	plt.figure(3)
 	plt.plot(x, y, 'b', x, t, 'bo')
 	plt.plot(x, tpredicted_bay, 'r')
+	print 'Error max likelihood: ', squareErrorEval(tvalid, tpredicted_ml_valid)
+	print 'Error Regularization: ', squareErrorEval(tvalid, tpredicted_reg_valid)
+	print 'Error Bayesian regression: ', squareErrorEval(tvalid, tpredicted_bay_valid)
 
+def crossValidation()
 
-debug_validation(200, 20)
+debug_validation(50, 20)
 plt.show()
