@@ -10,6 +10,8 @@ t = np.array(mdata['t'])
 N = len(x)
 mdiff = (t - y)*(t - y)
 mvar = (np.sum(mdiff))/N
+plt.figure(1)
+plt.plot(x, y, 'b', x, t, 'bo')
 #print mvar, math.sqrt(mvar)
 
 
@@ -66,6 +68,7 @@ def bayes_lin_estim(PHI, tt, alpha, beta):
 	return mn, Sn
 
 def maxim_likelihood_2(PHI, tt, niters = 20):
+	# iterative method for finding alpha and beta. Initial values set empirically
 	alpha = 0.0000000000000003
 	beta = 0.09079
 	PHI = np.matrix(PHI)
@@ -109,34 +112,10 @@ def squareErrorEval(real_arr, pred_arr):
 	return error
 
 # Debugging and cross validation -----------------------------------------------------
-'''
-def avoid_rep(valset_so_far, index):
-	if(len(index) == 0):
-		return False
-	print index, valset_so_far
-	print 'una corrida----------------------------------'
-	for i in range(0, len(valset_so_far)):
-		for j in range(0, len(valset_so_far[i])):
-			if(index[j] in valset_so_far[i]):
-				return False
-	return True
-
-def selectTestValid(Ntest, valset_so_far):
-	index = []
-	tmp = []
-	while(avoid_rep(valset_so_far, tmp) == False):
-		index = np.random.permutation(N)
-		tmp = index[Ntest:N]
-	xtest = x[index[0:Ntest - 1]]
-	ttest = t[index[0:Ntest - 1]]
-	xvalid = x[index[Ntest:N]]
-	tvalid = y[index[Ntest:N]]
-	return xtest, ttest, xvalid, tvalid, index[Ntest:N]
-'''
-
 def debug_validation(Ntest, index, l, r, run, basis_num = 10):
 	xtest = []
 	ttest = []
+	# Dividing test data set and validation dataset
 	if l == 0:
 		xtest = x[index[r + 1:N]]
 		ttest = t[index[r + 1:N]]
@@ -151,33 +130,34 @@ def debug_validation(Ntest, index, l, r, run, basis_num = 10):
 	xvalid = x[index[l:r]]
 	tvalid = y[index[l:r]]
 
-	PHItest = basis_functions_eval(xtest, basis_num)
-	PHI = basis_functions_eval(x, basis_num)
-	PHI_valid = basis_functions_eval(xvalid, basis_num)
-	# Maximum likelihood
-	#'''
+	# Evaluation of the design matrix
+	PHItest = basis_functions_eval(xtest, basis_num, 'tanh')
+	PHI = basis_functions_eval(x, basis_num, 'tanh')
+	PHI_valid = basis_functions_eval(xvalid, basis_num, 'tanh')
+
+	# Maximum likelihood Estim
 	Wml = maximum_likelihood_estim(PHItest, ttest)
 	tpredicted_ml = PHI*Wml
 	tpredicted_ml_valid = PHI_valid*Wml
-	plt.figure(1 + run)
+	plt.figure(2 + run)
 	plt.subplot(311)
 	plt.plot(x, y, 'b', x, t, 'bo')
 	plt.plot(x, tpredicted_ml, 'r')
-	#'''
+	plt.title('Maximum likelihood')
 
-	# Regularization
-
-	PHItest = basis_functions_eval(xtest, basis_num)
+	# Regularization Estim
+	PHItest = basis_functions_eval(xtest, basis_num, 'tanh')
 	Wreg = regularization_estim(PHItest, ttest, lambda_param = 0.000000000003)
 	tpredicted_reg = PHI*Wreg
 	tpredicted_reg_valid = PHI_valid*Wreg
 	plt.subplot(312)
 	plt.plot(x, y, 'b', x, t, 'bo')
 	plt.plot(x, tpredicted_reg, 'r')
+	plt.title('Regularization')
 
 
-	# Bayesian linear regresion
-	PHItest = basis_functions_eval(xtest, basis_num)
+	# Bayesian linear regresion Estim
+	PHItest = basis_functions_eval(xtest, basis_num,'tanh')
 	alpha, beta = maxim_likelihood_2(PHItest, ttest)
 	mn, Sn = bayes_lin_estim(PHItest, ttest, alpha, beta)
 	tpredicted_bay = PHI*mn
@@ -193,6 +173,7 @@ def debug_validation(Ntest, index, l, r, run, basis_num = 10):
 	tmp2 = tpredicted_bay - 2.0*tpredicted_std
 	#print tpredicted_std
 	plt.plot(x, tpredicted_bay, 'r', x, tmp1, 'r--', x, tmp2, 'r--')
+	plt.title('Bayes linear regresion')
 	#plt.fill_between(x, tmp1, tmp2, where=tmp2>=tmp1, facecolor='red', interpolate=True)
 
 	# Square Error Computing
@@ -202,7 +183,7 @@ def debug_validation(Ntest, index, l, r, run, basis_num = 10):
 
 	return ret_ml, ret_reg, ret_bay
 
-def crossValidation(valid_num = 5, basis_func = 20):
+def crossValidation(valid_num = 5, basis_func = 30):
 	Nvalid = (len(x)/valid_num)
 	Ntest = len(x) - Nvalid
 	index = np.random.permutation(N)
@@ -215,11 +196,11 @@ def crossValidation(valid_num = 5, basis_func = 20):
 		err_ml, err_reg, err_bay = debug_validation(Ntest, index, l, r, i, basis_func)
 		l = r + 1
 		r += Nvalid - 1
-		print err_ml, err_reg, err_bay
+		#print err_ml, err_reg, err_bay
 		err_ml_arr.append(err_ml)
 		err_reg_arr.append(err_reg)
 		err_bay_arr.append(err_bay)
-		print '---------------------------------------------'
+		#print '---------------------------------------------'
 	err_ml_arr = np.array(err_ml_arr)
 	err_reg_arr = np.array(err_reg_arr)
 	err_bay_arr = np.array(err_bay_arr)
@@ -236,9 +217,9 @@ def crossValidation(valid_num = 5, basis_func = 20):
 	diff = err_bay_arr - mean_err_bay
 	std_bay = math.sqrt(np.sum(err_bay_arr**2.0)/valid_num)
 
-	print err_ml_arr, err_reg_arr, err_bay_arr
-	print mean_err_ml, mean_err_reg, mean_err_bay
-	print std_ml, std_reg, std_bay
+	#print err_ml_arr, err_reg_arr, err_bay_arr
+	print 'Maximum likelihood error(%): ', mean_err_ml, 'Regularization error(%): ', mean_err_reg, 'Bayes lin. reg. error(%): ', mean_err_bay
+	print 'Maximum likelihooderror: ', std_ml, 'Regularization error desv: ', std_reg, 'Bayes lin. reg. desv: ', std_bay
 
 crossValidation()
 #debug_validation(150, [], 0, 0, 20)
