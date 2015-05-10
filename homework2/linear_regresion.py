@@ -2,6 +2,7 @@ import scipy.io
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import sys
 
 mdata = scipy.io.loadmat('ejemplo_regresion.mat')
 x = np.array(mdata['x'])
@@ -139,7 +140,7 @@ def debug_validation(Ntest, index, l, r, run, basis_num = 10):
 	Wml = maximum_likelihood_estim(PHItest, ttest)
 	tpredicted_ml = PHI*Wml
 	tpredicted_ml_valid = PHI_valid*Wml
-	plt.figure(2 + run)
+	plt.figure('validation number: ' + str(2 + run))
 	plt.subplot(311)
 	plt.plot(x, y, 'b', x, t, 'bo')
 	plt.plot(x, tpredicted_ml, 'r')
@@ -218,9 +219,19 @@ def crossValidation(valid_num = 5, basis_func = 30):
 	std_bay = math.sqrt(np.sum(err_bay_arr**2.0)/valid_num)
 
 	#print err_ml_arr, err_reg_arr, err_bay_arr
-	print 'Maximum likelihood error(%): ', mean_err_ml, 'Regularization error(%): ', mean_err_reg, 'Bayes lin. reg. error(%): ', mean_err_bay
-	print 'Maximum likelihooderror: ', std_ml, 'Regularization error desv: ', std_reg, 'Bayes lin. reg. desv: ', std_bay
+	print 'Maximum likelihood error(%): ', mean_err_ml 
+  	print 'Regularization error(%): ', mean_err_reg 
+	print 'Bayes lin. reg. error(%): ', mean_err_bay
+	print 'Standard Deviations: ------------------------'
+	print 'Maximum likelihood error desv: ', std_ml 
+	print 'Regularization error desv: ', std_reg 
+	print 'Bayes lin. reg. desv: ', std_bay
 
-crossValidation()
+if(len(sys.argv) == 1):
+	crossValidation()
+else:
+	print 'Number of sets for cross validation: ', sys.argv[1]
+	print 'Number of basis functions: ', sys.argv[2]
+	crossValidation(int(sys.argv[1]), int(sys.argv[2]))
 #debug_validation(150, [], 0, 0, 20)
 plt.show()
