@@ -11,6 +11,7 @@ file = open('iris.data', 'r')
 table = [row.strip().split(',') for row in file]
 data = np.matrix(table)
 label = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 2}
+label_biclass_1 = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 1}
 
 
 def msEstim(X,T):
@@ -37,21 +38,40 @@ def assignVar(N):
     XX = np.concatenate((unos,a,b,c,d),1)
     return np.matrix(XX), np.matrix(e)
 
-def extractMax(Yestim):
+def extractMax(Yestim, nclass):
     for i in range(len(Yestim[:,0])):
         mayor = -1000000.0
         idmayor = -1
-        for j in range(3):
+        for j in range(nclass):
             if(Yestim[i,j] > mayor):
                 mayor = Yestim[i,j]
                 idmayor = j
 
-        for j in range(3):
+        for j in range(nclass):
             if (j == idmayor):
                 Yestim[i,j] = 1.
             else:
                 Yestim[i,j] = 0.
     return Yestim
+
+def evalAccuracy(Yestim, Tvalid, nclass):
+    true_positives = np.array([0.,0.,0.])
+    true_negatives = np.array([0.,0.,0.])
+    false_positives = np.array([0.,0.,0.])
+    false_negatives = np.array([0.,0.,0.])
+    for i in range(len(Yestim[:,0])):
+        for j in range(nclass):
+            if(Tvalid[i,j] == 1. and Tvalid[i,j] == Yestim[i,j]):
+                true_positives[j] += 1.
+            if(Tvalid[i,j] == 0. and Tvalid[i,j] == Yestim[i,j]):
+                true_negatives[j] += 1.
+            if(Tvalid[i,j] == 0. and Yestim[i,j] == 1.):
+                false_positives[j] += 1.
+            if(Tvalid[i,j] == 1. and Yestim[i,j] == 0):
+                false_negatives[j] += 1.
+    print true_positives, true_negatives, false_positives, false_negatives
+    ret = np.sum(true_positives + true_negatives)/np.sum(true_positives + false_positives + false_negatives + true_negatives)
+    return ret
 
 def evaluate(Xtrain, Xtest, Ttrain, Ttest):
     # Least squares estimation
@@ -59,8 +79,9 @@ def evaluate(Xtrain, Xtest, Ttrain, Ttest):
     Yestim = np.transpose(Wmse)*np.transpose(Xtest)
     Yestim = np.transpose(Yestim)
     #print Yestim
-    Yestim = extractMax(Yestim)
-    print Yestim
+    Yestim = extractMax(Yestim, 3)
+    lsq_err = evalAccuracy(Yestim, Ttest, 3)
+
 
 
 X, T = assignVar(len(data[:,1]))
