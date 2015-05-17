@@ -5,6 +5,7 @@ import math
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from pylab import *
 from matplotlib import cm
+import scipy
 
 
 file = open('iris.data', 'r')
@@ -16,6 +17,12 @@ label_biclass_1 = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 1}
 
 def msEstim(X,T):
     return (np.linalg.inv(np.transpose(X)*X)) * (np.transpose(X)*T)
+
+def softMax(z):
+    nume = np.exp(z)
+    denom = np.sum(nume)
+    ret = nume / denom
+    return ret
 
 def gmEstim(X,T, nclass):
     msize = X[0].shape[1]
@@ -30,9 +37,41 @@ def gmEstim(X,T, nclass):
         msum = msum / Ni
         #print msum
         U[i,:] = msum
-    print U
+    #print U
     Sigma = np.zeros((msize,msize))
-    return 0
+    for i in range(0, nclass):
+        S = np.zeros((msize,msize))
+        for j in range(0, len(X[:,0])):
+            tmp = np.matrix((X[j,:])*(T[j,i]) - (U[i,:])*(T[j,i]))
+            tmp2 = np.transpose(tmp)
+            tmps = tmp2*tmp
+            S = S + tmps
+        Sigma = Sigma + S
+    #print Sigma
+    Pi_ml = np.zeros((1,nclass))
+    for i in range(0, nclass):
+        Ni = 0
+        for j in range(0, len(X[:,0])):
+            Ni = Ni + T[j,i]
+        Pi_ml[0,i] = Ni / len(X[:,0])
+    
+    
+    Sigma = np.matrix(Sigma[1:, 1:])    
+    #print np.linalg.inv(Sigma)*np.transpose(mio)
+    Wgm = np.zeros((nclass, msize))
+    for i in range(0, nclass):
+        uk = np.transpose(np.matrix(U[i,1:]))
+        wi = np.linalg.inv(Sigma)*uk
+        w0 = ((-0.5*np.transpose(uk))*(np.linalg.inv(Sigma)*uk)) + np.log(Pi_ml[0,i])
+        #print w0, wi
+        tmp = np.zeros((1, msize))
+        tmp[0,0] = w0
+        tmp[0,1:] = np.transpose(wi)
+        wk = tmp
+        #print wk
+        Wgm[i,:] = wk
+    Wgm = np.matrix(Wgm)   
+    return Wgm
 
 def assignVar(N):
     a = np.zeros((N,1))
@@ -102,7 +141,12 @@ def evaluate(Xtrain, Xtest, Ttrain, Ttest):
     # Generative model classification
     #print Xtrain
     Wgme = gmEstim(Xtrain, Ttrain, 3)
-
+    Yestim_gme = Wgme*np.transpose(Xtest)
+    for i in range(0, Yestim_gme.shape[1]):
+        Yestim_gme[:,i] = softMax(Yestim_gme[:,i])
+    Yestim_gme = extractMax(np.transpose(Yestim_gme), 3)
+    gme_err = evalAccuracy(Yestim_gme, Ttest, 3)
+    print lsq_err, gme_err
 
 
 X, T = assignVar(len(data[:,1]))
