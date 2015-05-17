@@ -17,6 +17,23 @@ label_biclass_1 = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 1}
 def msEstim(X,T):
     return (np.linalg.inv(np.transpose(X)*X)) * (np.transpose(X)*T)
 
+def gmEstim(X,T, nclass):
+    msize = X[0].shape[1]
+    U = np.zeros((nclass,msize))
+    for i in range(0,nclass):
+        msum = np.zeros(msize)
+        Ni = 0
+        for j in range(0, len(X[:,0])):
+            tmp = (X[j,:])*(T[j,i])
+            Ni += (T[j,i])
+            msum = msum + tmp        
+        msum = msum / Ni
+        #print msum
+        U[i,:] = msum
+    print U
+    Sigma = np.zeros((msize,msize))
+    return 0
+
 def assignVar(N):
     a = np.zeros((N,1))
     b = np.zeros((N,1))
@@ -69,7 +86,7 @@ def evalAccuracy(Yestim, Tvalid, nclass):
                 false_positives[j] += 1.
             if(Tvalid[i,j] == 1. and Yestim[i,j] == 0):
                 false_negatives[j] += 1.
-    print true_positives, true_negatives, false_positives, false_negatives
+    #print true_positives, true_negatives, false_positives, false_negatives
     ret = np.sum(true_positives + true_negatives)/np.sum(true_positives + false_positives + false_negatives + true_negatives)
     return ret
 
@@ -81,6 +98,10 @@ def evaluate(Xtrain, Xtest, Ttrain, Ttest):
     #print Yestim
     Yestim = extractMax(Yestim, 3)
     lsq_err = evalAccuracy(Yestim, Ttest, 3)
+
+    # Generative model classification
+    #print Xtrain
+    Wgme = gmEstim(Xtrain, Ttrain, 3)
 
 
 
