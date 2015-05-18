@@ -24,6 +24,35 @@ def softMax(z):
     ret = nume / denom
     return ret
 
+def logisFunc(a):
+    ret = 1.0/(1.0 + np.exp(a))
+    return ret
+
+def logRegEstim(X,T):
+    PHI = X
+    N = X.shape[0]
+    M = X.shape[1]
+    Wold = np.transpose(np.matrix(np.random.random_sample(M)))
+    Wnew = np.transpose(np.matrix(np.zeros(M)))
+    EPS = 1e-6
+    diff = np.linalg.norm(Wold - Wnew)    
+    while 1:        
+        yy = np.transpose(Wold) * np.transpose(PHI)
+        yy = np.transpose(logisFunc(yy))
+        R = np.zeros((N,N))
+        for i in range(0,N):
+            R[i,i] = yy[i,0] * (1 - yy[i,0])
+        
+        z = (PHI*Wold) - (np.linalg.inv(R)*(yy - T))
+        Wnew = np.linalg.inv((np.transpose(PHI) * (R * PHI))) * (np.transpose(PHI)*R*z)
+        diff = np.linalg.norm(Wold - Wnew)
+        print Wold
+        if diff < EPS:
+            break
+        else:
+            Wold = Wnew
+    return Wnew
+
 def gmEstim(X,T, nclass):
     msize = X[0].shape[1]
     U = np.zeros((nclass,msize))
@@ -129,28 +158,34 @@ def evalAccuracy(Yestim, Tvalid, nclass):
     ret = np.sum(true_positives + true_negatives)/np.sum(true_positives + false_positives + false_negatives + true_negatives)
     return ret
 
-def evaluate(Xtrain, Xtest, Ttrain, Ttest):
+def evaluate(Xtrain, Xtest, Ttrain, Ttest, nclass):
     # Least squares estimation
     Wmse = msEstim(Xtrain,Ttrain)
     Yestim = np.transpose(Wmse)*np.transpose(Xtest)
     Yestim = np.transpose(Yestim)
     #print Yestim
-    Yestim = extractMax(Yestim, 3)
-    lsq_err = evalAccuracy(Yestim, Ttest, 3)
+    Yestim = extractMax(Yestim, nclass)
+    lsq_err = evalAccuracy(Yestim, Ttest, nclass)
 
     # Generative model classification
     #print Xtrain
-    Wgme = gmEstim(Xtrain, Ttrain, 3)
+    Wgme = gmEstim(Xtrain, Ttrain, nclass)
     Yestim_gme = Wgme*np.transpose(Xtest)
     for i in range(0, Yestim_gme.shape[1]):
         Yestim_gme[:,i] = softMax(Yestim_gme[:,i])
-    Yestim_gme = extractMax(np.transpose(Yestim_gme), 3)
-    gme_err = evalAccuracy(Yestim_gme, Ttest, 3)
+    Yestim_gme = extractMax(np.transpose(Yestim_gme), nclass)
+    gme_err = evalAccuracy(Yestim_gme, Ttest, nclass)
+
+    # Discriminative model classification(logistic regression)
+    for i in range(0, nclass):
+        logRegEstim(Xtrain, Ttrain[:,i])
+
+
     print lsq_err, gme_err
 
 
 X, T = assignVar(len(data[:,1]))
-evaluate(X,X,T,T)
+evaluate(X,X,T,T, 3)
 
 
 
