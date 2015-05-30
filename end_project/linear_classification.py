@@ -76,10 +76,10 @@ def extractMax(Yestim, nclass):
 
     # Evaluationg accuracy of a preditcion
 def evalAccuracy(Yestim, Tvalid, nclass):
-    true_positives = np.array([0.,0.,0.])
-    true_negatives = np.array([0.,0.,0.])
-    false_positives = np.array([0.,0.,0.])
-    false_negatives = np.array([0.,0.,0.])
+    true_positives = np.array([0.,0.,0.,0.])
+    true_negatives = np.array([0.,0.,0.,0.])
+    false_positives = np.array([0.,0.,0.,0.])
+    false_negatives = np.array([0.,0.,0.,0.])
     for i in range(len(Yestim[:,0])):
         for j in range(nclass):
             if(Tvalid[i,j] == 1. and Tvalid[i,j] == Yestim[i,j]):
@@ -285,11 +285,15 @@ def crossValidation(X, T, nclass, valid_num = 5):
 X, T = assignVar(len(data[:,1]))
 #print X
 #evaluate(X,X,T,T, 3)
-#crossValidation(X,T,3)
+X[:,0] = X[:,0]
+X[:,1] = X[:,1]
+crossValidation(X,T,4)
 
-x11 = np.transpose(X[0:104,1])
-x12 = np.transpose(X[0:104,2])
-x13 = np.transpose(X[0:104,3])
+print X.shape
+
+x11 = X[0:104,1]
+x12 = X[0:104,2]
+x13 = X[0:104,3]
 
 x21 = X[104:190,1]
 x22 = X[104:190,2]
@@ -303,20 +307,13 @@ x41 = X[606:841,1]
 x42 = X[606:841,2]
 x43 = X[606:841,3]
 
-print x11
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter(x11, x12, x13, c='r', marker='o')
-#ax.scatter(x21, x22, x23, c='b', marker='*')
-#ax.scatter(x31, x32, x33, c='r', marker='x')
-#ax.scatter(x41, x42, x43, c='g', marker='+')
-
-ax.set_xlabel('X Label')
-ax.set_ylabel('Y Label')
-ax.set_zlabel('Z Label')
-
+plt.figure(1)
+plt.plot(x11, x12, 'yo')
+plt.plot(x21, x22, 'ro')
+plt.plot(x31, x32, 'go')
+plt.plot(x41, x42, 'bo')
 plt.show()
+
 
 '''
 plt.figure(1)
