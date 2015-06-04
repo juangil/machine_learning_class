@@ -59,7 +59,7 @@ class nn:
         if(self.bas_fun == 'sig'):
             ret = 1.0 / (1.0 + np.exp(-A))
         elif(self.bas_fun == 'tanh'):
-            ret = (np.exp(A) - np.exp(-A))/(np.exp(A) + np.exp(-A))
+            ret = np.divide((np.exp(A) - np.exp(-A)),(np.exp(A) + np.exp(-A)))
         return ret
 
     def computeDelta2(self, Y, T):
@@ -67,16 +67,21 @@ class nn:
 
     def computeDelta1(self, Y, T):
         tmp = T - Y
+        #print tmp.shape
+        #print self.wmat2.shape
         tmp = np.transpose(tmp)*self.wmat2
         h_der = 0
+        #print tmp.shape
         if(self.bas_fun == 'sig'):
-            tmp = 1.0 / (1.0 + np.exp(-self.ai))
-            tmp2 = 1.0 - tmp
-            h_der = np.multiply(tmp, tmp2)
+            tmp1 = 1.0 / (1.0 + np.exp(-self.ai))
+            tmp2 = 1.0 - tmp1
+            h_der = np.multiply(tmp1, tmp2)
         elif(self.bas_fun == 'tanh'):
-            h_der = (np.exp(self.ai) - np.exp(-self.ai))/(np.exp(self.ai) + np.exp(-self.ai))
+            h_der = np.divide((np.exp(self.ai) - np.exp(-self.ai)),(np.exp(self.ai) + np.exp(-self.ai)))
             h_der = 1.0 - np.square(h_der)
-        return np.multiply(h_der,tmp)
+        #print 'delta1'
+        #print h_der.shape, tmp.shape
+        return np.multiply(h_der,np.transpose(tmp))
 
     def forwardPropagation(self, xx):
         self.weight1ToMat()
@@ -112,15 +117,17 @@ class nn:
 
     def process(self, xx, T):
         cont = 0
-        while(cont < 50):
+        Y = 0
+        while(cont < 15):
             Y = self.forwardPropagation(xx)
             gradient_w = self.errorGradient(xx, Y, T)
-            w_new = self.W - (0.5*gradient_w)
+            w_new = self.W - (0.1*gradient_w)
             self.W = w_new
             self.w1 = w_new[0:self.dim*self.neurons, 0]
             self.w2 = w_new[self.dim*self.neurons:w_new.shape[0], 0]
-            print Y
+            #print Y
             cont = cont + 1
+        print Y
 
     def debug(self):
         print self.w2
@@ -153,7 +160,7 @@ XX[:,1:] = X
 XX[:,0] = tmp
 XX = np.matrix(XX)
 XX = np.transpose(XX)
-mneural = nn(XX.shape[0] - 1, 2, 1)
+mneural = nn(XX.shape[0] - 1, 2, 1, 'tanh')
 #print XX, t
 mneural.process(XX, t)
 
