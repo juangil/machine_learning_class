@@ -88,17 +88,15 @@ class nn:
         return Y - T
 
     def computeDelta1(self, Y, T):
-        tmp = T - Y
+        tmp = 0
         if(self.tp == 'clas' and self.outs == 1):
-            tmp2 = np.multiply(Y, 1.0 - Y)
-            tmp = np.divide(tmp, tmp2)
-            tmp = -tmp
-        #print tmp.shape
-        #print self.wmat2.shape
-        #print np.transpose(tmp).shape, self.wmat2.shape
-        tmp = np.transpose(tmp)*self.wmat2
+            tmp = Y - T
+            tmp = np.transpose(tmp)*self.wmat2
+        elif(self.tp == 'reg'):
+            tmp = T - Y
+            tmp = np.transpose(tmp)*self.wmat2
+
         h_der = 0
-        #print tmp.shape
         if(self.bas_fun == 'sig'):
             tmp1 = 1.0 / (1.0 + np.exp(-self.ai))
             tmp2 = 1.0 - tmp1
@@ -176,7 +174,7 @@ class nn:
         print self.w2
         print self.wmat2
 
-
+'''
 mdata = scipy.io.loadmat('ejemplo_class_uno.mat')
 X = np.array(mdata['X'])
 t = np.array(mdata['t'])
@@ -206,14 +204,13 @@ mneural.process(XX, t)
 XX = np.transpose(XX)
 t = np.transpose(t)
 
-'''
 plt.figure(1)
 plt.plot(XX[0:49,1], XX[0:49,2], 'bo')
 plt.plot(XX[50:100,1], XX[50:100,2], 'rx')
 plt.show()
 '''
 
-'''
+
 file = open('iris.data', 'r')
 table = [row.strip().split(',') for row in file]
 data = np.matrix(table)
@@ -256,7 +253,7 @@ X[2,:] = normalize_arr_gauss(X[2,:])
 
 mneural = nn(X.shape[0] - 1, 2, 1, 'tanh')
 mneural.process(X, T)
-
+'''
 X = np.transpose(X)
 T = np.transpose(T)
 plt.figure(2)
