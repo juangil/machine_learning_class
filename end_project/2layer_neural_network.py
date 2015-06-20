@@ -24,6 +24,32 @@ def softMax(z):
     ret = nume / denom
     return ret
 
+def extractMax(Yestim, nclass):
+    for i in range(len(Yestim[:,0])):
+        mayor = -1000000.0
+        idmayor = -1
+        for j in range(nclass):
+            if(Yestim[i,j] > mayor):
+                mayor = Yestim[i,j]
+                idmayor = j
+
+        for j in range(nclass):
+            if (j == idmayor):
+                Yestim[i,j] = 1.
+            else:
+                Yestim[i,j] = 0.
+    return Yestim
+
+def extractMaxDummy(Yestim, nclass):
+    for i in range(len(Yestim[:,0])):
+        for j in range(nclass):
+            if(Yestim[i,j] < 0.5):
+                Yestim[i,j] = 0.
+            else:
+                Yestim[i,j] = 1.
+
+    return Yestim
+
 # Neural network class ---------------------------------------------------------
 class nn:
     def __init__(self, d, M, K, b = 'sig', p = 'clas'):
@@ -38,6 +64,7 @@ class nn:
         self.bas_fun = b
         self.ai = np.zeros((M, 1))
         self.zi = np.zeros((M, 1))
+        self.a2i = np.zeros((K, 1))
         self.wmat1 = np.matrix(np.zeros((M, d + 1)))
         self.wmat2 = np.matrix(np.zeros((K, M)))
         self.tp = p
@@ -72,6 +99,9 @@ class nn:
             ret = 1.0 / (1.0 + np.exp(-A))
         elif(self.bas_fun == 'tanh'):
             ret = np.divide((np.exp(A) - np.exp(-A)),(np.exp(A) + np.exp(-A)))
+        elif(self.bas_fun == 'exp'):
+            ret = np.exp(-A)
+
         return ret
 
     def cost_fun_eval(self, xx, T):
@@ -89,9 +119,19 @@ class nn:
 
     def computeDelta1(self, Y, T):
         tmp = 0
-        if(self.tp == 'clas' and self.outs == 1):
+        if(self.tp == 'clas'):
             tmp = Y - T
             tmp = np.transpose(tmp)*self.wmat2
+        elif(self.tp == 'mult_clas' and self.outs > 1):
+            gono = np.zeros((Y.shape[1], self.neurons))
+            for i in range(0, Y.shape[1]):
+                tmp1 = np.transpose(np.exp(self.a2i[:,i]))*self.wmat2
+                tmp2 = np.sum(np.exp(self.a2i[:,i]))
+                tmp1 = np.divide(tmp1, tmp2)
+                joder = self.wmat2 - tmp1
+                joder = np.transpose(np.transpose(joder)*T[:,i])
+                gono[i,:] = tmp1
+            tmp = gono
         elif(self.tp == 'reg'):
             tmp = T - Y
             tmp = np.transpose(tmp)*self.wmat2
@@ -116,6 +156,7 @@ class nn:
         Z = self.basFunEval(A)
         self.zi = Z
         Y = self.activ2Eval(Z)
+        self.a2i = Y
         #print Y
         if(self.tp == 'clas'):
             Y = 1.0 / (1.0 + np.exp(-Y))
@@ -158,8 +199,8 @@ class nn:
         cont = 0
         Y = 0
         while(cont < 15):
-            #print self.cost_fun_eval(xx, T)
             Y = self.forwardPropagation(xx)
+            #print np.sum(Y[:,0])
             gradient_w = self.errorGradient(xx, Y, T)
             w_new = self.W - (0.1*gradient_w)
             diff = np.sqrt(np.sum(np.square(w_new)))
@@ -168,7 +209,7 @@ class nn:
             self.w2 = w_new[self.dim*self.neurons:w_new.shape[0], 0]
             cont = cont + 1
 
-        print np.transpose(Y)
+        return np.transpose(Y)
 
     def debug(self):
         print self.w2
@@ -241,18 +282,24 @@ def assignVar(N):
 XX, T = assignVar(len(data[:,1]))
 XX = np.transpose(XX)
 T = np.transpose(T)
-T = T[0,:]
-X = XX[0:3,:]
-X[2,:] = XX[3,:]
+#T = T[0,:]
+#X = XX[0:3,:]
+#X[2,:] = XX[3,:]
 # Normalization
-X[1,:] = normalize_arr_gauss(X[1,:])
-X[2,:] = normalize_arr_gauss(X[2,:])
+XX[1,:] = normalize_arr_gauss(XX[1,:])
+XX[2,:] = normalize_arr_gauss(XX[2,:])
+XX[3,:] = normalize_arr_gauss(XX[3,:])
+XX[4,:] = normalize_arr_gauss(XX[4,:])
 #print X,T
-#print np.amax(X[1,:]), np.amin(X[1,:])
-#print np.amax(X[2,:]), np.amin(X[2,:])
+#print np.amax(XX[1,:]), np.amin(XX[1,:])
+#print np.amax(XX[2,:]), np.amin(XX[2,:])
+#print np.amax(XX[3,:]), np.amin(XX[4,:])
+#print np.amax(XX[4,:]), np.amin(XX[3,:])
 
-mneural = nn(X.shape[0] - 1, 2, 1, 'tanh')
-mneural.process(X, T)
+mneural = nn(XX.shape[0] - 1, 4, 3, 'tanh')
+Yestim = mneural.process(XX, T)
+Yestim = extractMaxDummy(Yestim, Yestim.shape[1])
+print Yestim
 '''
 X = np.transpose(X)
 T = np.transpose(T)
