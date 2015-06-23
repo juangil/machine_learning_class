@@ -18,6 +18,13 @@ def normalize_arr_gauss(x):
     x = np.divide(x, desv)
     return x
 
+def normalize_arr_min_max(x):
+    b = x[0,np.argmax(x)]
+    a = x[0,np.argmin(x)]
+    x = x - a
+    x = np.divide(x, b - a)
+    return x
+
 def softMax(z):
     nume = np.exp(z)
     denom = np.sum(nume)
@@ -50,6 +57,25 @@ def extractMaxDummy(Yestim, nclass):
 
     return Yestim
 
+def evalAccuracy(Yestim, Tvalid, nclass):
+    true_positives = np.array([0.,0.,0.,0.])
+    true_negatives = np.array([0.,0.,0.,0.])
+    false_positives = np.array([0.,0.,0.,0.])
+    false_negatives = np.array([0.,0.,0.,0.])
+    for i in range(len(Yestim[:,0])):
+        for j in range(nclass):
+            if(Tvalid[i,j] == 1. and Tvalid[i,j] == Yestim[i,j]):
+                true_positives[j] += 1.
+            if(Tvalid[i,j] == 0. and Tvalid[i,j] == Yestim[i,j]):
+                true_negatives[j] += 1.
+            if(Tvalid[i,j] == 0. and Yestim[i,j] == 1.):
+                false_positives[j] += 1.
+            if(Tvalid[i,j] == 1. and Yestim[i,j] == 0):
+                false_negatives[j] += 1.
+    #print true_positives, true_negatives, false_positives, false_negatives
+    ret = np.sum(true_positives + true_negatives)/np.sum(true_positives + false_positives + false_negatives + true_negatives)
+    return ret
+
 # Neural network class ---------------------------------------------------------
 class nn:
     def __init__(self, d, M, K, b = 'sig', p = 'clas'):
@@ -58,6 +84,8 @@ class nn:
         self.outs = K
         self.w1 = np.transpose(np.matrix(np.random.standard_normal((d+1)*M)))
         self.w2 = np.transpose(np.matrix(np.random.standard_normal(M*K)))
+        self.iniw1 = self.w1
+        self.iniw2 = self.w2
         self.gradw1 = np.transpose(np.matrix(np.zeros((d+1)*M)))
         self.gradw2 = np.transpose(np.matrix(np.zeros(M*K)))
         self.W = np.concatenate((self.w1, self.w2), axis = 0)
@@ -101,18 +129,21 @@ class nn:
             ret = np.divide((np.exp(A) - np.exp(-A)),(np.exp(A) + np.exp(-A)))
         elif(self.bas_fun == 'exp'):
             ret = np.exp(-A)
-
+        else:
+            ret = A
         return ret
 
     def cost_fun_eval(self, xx, T):
         if(self.tp == 'clas'):
-            if(self.outs == 1):
-                Y = self.forwardPropagation(xx)
-                tmp1 = np.multiply(np.log(Y), T)
-                tmp2 = np.multiply(np.log(1.0 - Y), (1.0 - T))
-                ret = tmp1 + tmp2
-                ret = np.sum(ret)
-                return -ret
+            Y = self.forwardPropagation(xx)
+            tmp1 = np.multiply(np.log(Y), T)
+            tmp2 = np.multiply(np.log(1.0 - Y), (1.0 - T))
+            ret = tmp1 + tmp2
+            if(self.outs > 1):
+                ret = np.sum(ret, axis = 1)
+            ret = np.sum(ret)
+            return -ret
+
 
     def computeDelta2(self, Y, T):
         return Y - T
@@ -198,8 +229,16 @@ class nn:
             return
         cont = 0
         Y = 0
-        while(cont < 15):
+        mmenor = 100000000.0
+        super_Y = 0.0
+        super_W = 0.0
+        while(cont < 1000):
             Y = self.forwardPropagation(xx)
+            tm_cost = self.cost_fun_eval(xx, T)
+            if(tm_cost < mmenor):
+                mmenor = tm_cost
+                super_Y = Y
+                super_W = self.W
             #print np.sum(Y[:,0])
             gradient_w = self.errorGradient(xx, Y, T)
             w_new = self.W - (0.1*gradient_w)
@@ -209,7 +248,7 @@ class nn:
             self.w2 = w_new[self.dim*self.neurons:w_new.shape[0], 0]
             cont = cont + 1
 
-        return np.transpose(Y)
+        return np.transpose(super_Y), super_W
 
     def debug(self):
         print self.w2
@@ -240,7 +279,7 @@ print XX, t
 #print np.transpose(XX), np.transpose(t)
 mneural = nn(XX.shape[0] - 1, 2, 1, 'tanh')
 #print ' '
-mneural.process(XX, t)
+print mneural.process(XX, t)
 #print XX, t
 XX = np.transpose(XX)
 t = np.transpose(t)
@@ -282,24 +321,35 @@ def assignVar(N):
 XX, T = assignVar(len(data[:,1]))
 XX = np.transpose(XX)
 T = np.transpose(T)
-#T = T[0,:]
-#X = XX[0:3,:]
-#X[2,:] = XX[3,:]
+
 # Normalization
+
+XX[1,:] = normalize_arr_min_max(XX[1,:])
+XX[2,:] = normalize_arr_min_max(XX[2,:])
+XX[3,:] = normalize_arr_min_max(XX[3,:])
+XX[4,:] = normalize_arr_min_max(XX[4,:])
+'''
 XX[1,:] = normalize_arr_gauss(XX[1,:])
 XX[2,:] = normalize_arr_gauss(XX[2,:])
 XX[3,:] = normalize_arr_gauss(XX[3,:])
 XX[4,:] = normalize_arr_gauss(XX[4,:])
+'''
 #print X,T
 #print np.amax(XX[1,:]), np.amin(XX[1,:])
 #print np.amax(XX[2,:]), np.amin(XX[2,:])
 #print np.amax(XX[3,:]), np.amin(XX[4,:])
 #print np.amax(XX[4,:]), np.amin(XX[3,:])
 
-mneural = nn(XX.shape[0] - 1, 4, 3, 'tanh')
-Yestim = mneural.process(XX, T)
-Yestim = extractMaxDummy(Yestim, Yestim.shape[1])
+#T = T[0,:]
+#X = XX[0:3,:]
+#X[2,:] = XX[3,:]
+
+mneural = nn(XX.shape[0] - 1, 8, 3, 'sig')
+Yestim, w_estim = mneural.process(XX, T)
+Yestim = extractMax(Yestim, Yestim.shape[1])
 print Yestim
+print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
+
 '''
 X = np.transpose(X)
 T = np.transpose(T)
