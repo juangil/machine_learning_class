@@ -219,7 +219,6 @@ def evaluate(Xtrain, Xtest, Ttrain, Ttest, nclass):
     Yestim_log_reg = extractMax(Yestim_log_reg,nclass)
     #print Yestim_log_reg, Ttest
     log_reg_err = evalAccuracy(Yestim_log_reg, Ttest, nclass)
-
     return lsq_err, gme_err, log_reg_err
 
 def crossValidation(X, T, nclass, valid_num = 5):
@@ -283,13 +282,11 @@ def crossValidation(X, T, nclass, valid_num = 5):
 
 
 X, T = assignVar(len(data[:,1]))
-#print X
-#evaluate(X,X,T,T, 3)
+print T
+#print evaluate(X,X,T,T, 3)
 X[:,0] = X[:,0]
 X[:,1] = X[:,1]
-crossValidation(X,T,4)
-
-print X.shape
+#crossValidation(X,T,4)
 
 x11 = X[0:104,1]
 x12 = X[0:104,2]

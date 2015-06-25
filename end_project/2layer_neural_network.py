@@ -32,6 +32,13 @@ def softMax(z):
     return ret
 
 def extractMax(Yestim, nclass):
+    if(nclass == 1):
+        for i in range(0, len(Yestim[:,0])):
+            if Yestim[i,0] > 0.1:
+                Yestim[i,0] = 1.
+            else:
+                Yestim[i,0] = 0.
+        return Yestim
     for i in range(len(Yestim[:,0])):
         mayor = -1000000.0
         idmayor = -1
@@ -58,12 +65,12 @@ def extractMaxDummy(Yestim, nclass):
     return Yestim
 
 def evalAccuracy(Yestim, Tvalid, nclass):
-    true_positives = np.array([0.,0.,0.,0.])
-    true_negatives = np.array([0.,0.,0.,0.])
-    false_positives = np.array([0.,0.,0.,0.])
-    false_negatives = np.array([0.,0.,0.,0.])
-    for i in range(len(Yestim[:,0])):
-        for j in range(nclass):
+    true_positives = np.zeros(nclass)
+    true_negatives = np.zeros(nclass)
+    false_positives = np.zeros(nclass)
+    false_negatives = np.zeros(nclass)
+    for i in range(0,len(Yestim[:,0])):
+        for j in range(0,nclass):
             if(Tvalid[i,j] == 1. and Tvalid[i,j] == Yestim[i,j]):
                 true_positives[j] += 1.
             if(Tvalid[i,j] == 0. and Tvalid[i,j] == Yestim[i,j]):
@@ -78,7 +85,7 @@ def evalAccuracy(Yestim, Tvalid, nclass):
 
 # Neural network class ---------------------------------------------------------
 class nn:
-    def __init__(self, d, M, K, b = 'sig', p = 'clas'):
+    def __init__(self, d, M, K, lr, b = 'sig', p = 'clas'):
         self.dim = d + 1 # input
         self.neurons = M
         self.outs = K
@@ -96,6 +103,7 @@ class nn:
         self.wmat1 = np.matrix(np.zeros((M, d + 1)))
         self.wmat2 = np.matrix(np.zeros((K, M)))
         self.tp = p
+        self.lr = lr
 
     def weight1ToMat(self):
         l = 0
@@ -123,6 +131,7 @@ class nn:
 
     def basFunEval(self, A):
         ret = 0.0
+        A = A + 0.001
         if(self.bas_fun == 'sig'):
             ret = 1.0 / (1.0 + np.exp(-A))
         elif(self.bas_fun == 'tanh'):
@@ -131,13 +140,14 @@ class nn:
             ret = np.exp(-A)
         else:
             ret = A
+        ret = ret + 0.001
         return ret
 
     def cost_fun_eval(self, xx, T):
         if(self.tp == 'clas'):
             Y = self.forwardPropagation(xx)
             tmp1 = np.multiply(np.log(Y), T)
-            tmp2 = np.multiply(np.log(1.0 - Y), (1.0 - T))
+            tmp2 = np.multiply(np.log((1.0 - Y) + 0.001), (1.0 - T))
             ret = tmp1 + tmp2
             if(self.outs > 1):
                 ret = np.sum(ret, axis = 1)
@@ -149,20 +159,19 @@ class nn:
         return Y - T
 
     def computeDelta1(self, Y, T):
-        tmp = 0
+        tmp = 0.0
         if(self.tp == 'clas'):
             tmp = Y - T
             tmp = np.transpose(tmp)*self.wmat2
         elif(self.tp == 'mult_clas' and self.outs > 1):
-            gono = np.zeros((Y.shape[1], self.neurons))
-            for i in range(0, Y.shape[1]):
-                tmp1 = np.transpose(np.exp(self.a2i[:,i]))*self.wmat2
-                tmp2 = np.sum(np.exp(self.a2i[:,i]))
-                tmp1 = np.divide(tmp1, tmp2)
-                joder = self.wmat2 - tmp1
-                joder = np.transpose(np.transpose(joder)*T[:,i])
-                gono[i,:] = tmp1
-            tmp = gono
+            tmp1 = np.transpose(Y)*self.wmat2
+            #print tmp1.shape, self.wmat2.shape
+            for i in range(0, tmp1.shape[0]):
+                mio = tmp1[i,:] - self.wmat2
+                mio = np.sum(mio, axis = 0)
+                tmp1[i,:] = mio
+            #print tmp1.shape
+            tmp = tmp1
         elif(self.tp == 'reg'):
             tmp = T - Y
             tmp = np.transpose(tmp)*self.wmat2
@@ -182,19 +191,21 @@ class nn:
     def forwardPropagation(self, xx):
         self.weight1ToMat()
         self.weight2ToMat()
-        A = self.activ1Eval(xx)
+        A = self.activ1Eval(xx) + 0.001
         self.ai = A
-        Z = self.basFunEval(A)
+        Z = self.basFunEval(A) + 0.001
         self.zi = Z
-        Y = self.activ2Eval(Z)
-        self.a2i = Y
+        Y = self.activ2Eval(Z) + 0.001
+        self.a2i = Y + 0.001
         #print Y
         if(self.tp == 'clas'):
             Y = 1.0 / (1.0 + np.exp(-Y))
         elif(self.tp == 'mult_clas'):
             for i in range(0, Y.shape[1]):
                 Y[:,i] = softMax(Y[:,i])
+            print np.sum(Y, axis = 0)
         #print Y
+        Y = Y + 0.001
         return Y
 
     def errorGradient(self, xx, Y, T):
@@ -241,7 +252,7 @@ class nn:
                 super_W = self.W
             #print np.sum(Y[:,0])
             gradient_w = self.errorGradient(xx, Y, T)
-            w_new = self.W - (0.1*gradient_w)
+            w_new = self.W - (self.lr*gradient_w)
             diff = np.sqrt(np.sum(np.square(w_new)))
             self.W = w_new
             self.w1 = w_new[0:self.dim*self.neurons, 0]
@@ -255,6 +266,7 @@ class nn:
         print self.wmat2
 
 '''
+# FIRST TOY DATA SET------------------------------------------------------------
 mdata = scipy.io.loadmat('ejemplo_class_uno.mat')
 X = np.array(mdata['X'])
 t = np.array(mdata['t'])
@@ -290,10 +302,11 @@ plt.plot(XX[50:100,1], XX[50:100,2], 'rx')
 plt.show()
 '''
 
-
+# SECOND DATASET: IRIS ---------------------------------------------------------
+'''
 file = open('iris.data', 'r')
 table = [row.strip().split(',') for row in file]
-data = np.matrix(table)
+data_iris = np.matrix(table)
 label = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 2}
 label_biclass_1 = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 1}
 
@@ -304,36 +317,30 @@ def assignVar(N):
     d = np.zeros((N,1))
     e = np.zeros((N,3))
     for i in range(0, N):
-        tmp = data[:,0]
+        tmp = data_iris[:,0]
         a[i,0] = float(tmp[i,0])
-        tmp = data[:,1]
+        tmp = data_iris[:,1]
         b[i,0] = float(tmp[i,0])
-        tmp = data[:,2]
+        tmp = data_iris[:,2]
         c[i,0] = float(tmp[i,0])
-        tmp = data[:,3]
+        tmp = data_iris[:,3]
         d[i,0] = float(tmp[i,0])
-        tmp = data[:,4]
+        tmp = data_iris[:,4]
         e[i, label[tmp[i,0]]] = 1.
     unos=np.ones((N,1))
     XX = np.concatenate((unos,a,b,c,d),1)
     return np.matrix(XX), np.matrix(e)
 
-XX, T = assignVar(len(data[:,1]))
+XX, T = assignVar(len(data_iris[:,1]))
 XX = np.transpose(XX)
 T = np.transpose(T)
 
 # Normalization
-
 XX[1,:] = normalize_arr_min_max(XX[1,:])
 XX[2,:] = normalize_arr_min_max(XX[2,:])
 XX[3,:] = normalize_arr_min_max(XX[3,:])
 XX[4,:] = normalize_arr_min_max(XX[4,:])
-'''
-XX[1,:] = normalize_arr_gauss(XX[1,:])
-XX[2,:] = normalize_arr_gauss(XX[2,:])
-XX[3,:] = normalize_arr_gauss(XX[3,:])
-XX[4,:] = normalize_arr_gauss(XX[4,:])
-'''
+
 #print X,T
 #print np.amax(XX[1,:]), np.amin(XX[1,:])
 #print np.amax(XX[2,:]), np.amin(XX[2,:])
@@ -343,14 +350,13 @@ XX[4,:] = normalize_arr_gauss(XX[4,:])
 #T = T[0,:]
 #X = XX[0:3,:]
 #X[2,:] = XX[3,:]
-
+#print XX.shape, T.shape
 mneural = nn(XX.shape[0] - 1, 8, 3, 'sig')
 Yestim, w_estim = mneural.process(XX, T)
 Yestim = extractMax(Yestim, Yestim.shape[1])
-print Yestim
-print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
+#print Yestim
+#print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
 
-'''
 X = np.transpose(X)
 T = np.transpose(T)
 plt.figure(2)
@@ -358,3 +364,70 @@ plt.plot(X[0:49,1], X[0:49,2], 'bo')
 plt.plot(X[50:150,1], X[50:150,2], 'rx')
 plt.show()
 '''
+# THIRD DATA SET: VEHICLES------------------------------------------------------
+file = open('all_data_sorted.data', 'r')
+table = [row.strip().split(' ') for row in file]
+data = np.matrix(table)
+
+def assignVar(N):
+    a = np.zeros((N,1))
+    b = np.zeros((N,1))
+    c = np.zeros((N,1))
+    #d = np.zeros((N,1))
+    e = np.zeros((N,4))
+    for i in range(0, N):
+        tmp = data[:,0]
+        a[i,0] = float(tmp[i,0])
+        tmp = data[:,1]
+        b[i,0] = float(tmp[i,0])
+        tmp = data[:,2]
+        c[i,0] = float(tmp[i,0])
+        #tmp = data[:,3]
+        #d[i,0] = float(tmp[i,0])
+        tmp = data[:,3]
+        e[i, tmp[i,0]] = 1.
+    unos=np.ones((N,1))
+    XX = np.concatenate((unos,a,b,c),1)
+    return np.matrix(XX), np.matrix(e)
+
+X, T = assignVar(len(data[:,1]))
+X = np.transpose(X)
+T = np.transpose(T)
+#T = T[0,:]
+#print X.shape, T.shape
+mneural = nn(X.shape[0] - 1, 5, 4, 0.01, 'sig')
+Yestim, w_estim = mneural.process(X, T)
+Yestim = extractMax(Yestim, Yestim.shape[1])
+#print Yestim
+print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
+'''
+X = np.transpose(X)
+
+x11 = X[0:104,1]
+x12 = X[0:104,2]
+x13 = X[0:104,3]
+
+x21 = X[104:190,1]
+x22 = X[104:190,2]
+x23 = X[104:190,3]
+
+x31 = X[190:606,1]
+x32 = X[190:606,2]
+x33 = X[190:606,3]
+
+x41 = X[606:841,1]
+x42 = X[606:841,2]
+x43 = X[606:841,3]
+
+plt.figure(1)
+plt.plot(x11, x13, 'yo')
+plt.plot(x21, x23, 'ro')
+plt.plot(x31, x33, 'go')
+plt.plot(x41, x43, 'bo')
+
+plt.figure(2)
+plt.plot(x12, x13, 'yo')
+plt.plot(x22, x23, 'ro')
+plt.plot(x32, x33, 'go')
+plt.plot(x42, x43, 'bo')
+plt.show()'''
