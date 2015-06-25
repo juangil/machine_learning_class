@@ -241,7 +241,7 @@ def crossValidation(X, T, nclass, valid_num = 5):
         else:
             if(r < N):
                 Xtrain = np.concatenate((X[index[0:l], :],X[index[r: N], :]))
-                Ttrain = np.concatenate((X[index[0:l], :],X[index[r: N], :]))
+                Ttrain = np.concatenate((T[index[0:l], :],T[index[r: N], :]))
             else:
                 Xtrain = X[index[0:l], :]
                 Ttrain = T[index[0:l], :]
@@ -286,7 +286,7 @@ print T
 #print evaluate(X,X,T,T, 3)
 X[:,0] = X[:,0]
 X[:,1] = X[:,1]
-#crossValidation(X,T,4)
+crossValidation(X,T,4)
 
 x11 = X[0:104,1]
 x12 = X[0:104,2]

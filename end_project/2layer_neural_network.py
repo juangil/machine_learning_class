@@ -7,6 +7,11 @@ from pylab import *
 from matplotlib import cm
 import scipy
 
+def meanDesvCacl(z):
+    mmean = np.sum(z)/len(z)
+    desv = np.sum((z - mmean)*(z - mmean))/len(z)
+    return mmean, desv
+
 def normalize_arr_gauss(x):
     msum = np.sum(x)
     N = x.shape[1]
@@ -65,6 +70,7 @@ def extractMaxDummy(Yestim, nclass):
     return Yestim
 
 def evalAccuracy(Yestim, Tvalid, nclass):
+    #print Yestim.shape, Tvalid.shape
     true_positives = np.zeros(nclass)
     true_negatives = np.zeros(nclass)
     false_positives = np.zeros(nclass)
@@ -96,6 +102,7 @@ class nn:
         self.gradw1 = np.transpose(np.matrix(np.zeros((d+1)*M)))
         self.gradw2 = np.transpose(np.matrix(np.zeros(M*K)))
         self.W = np.concatenate((self.w1, self.w2), axis = 0)
+        #self.W_ini = np.concatenate((self.w1, self.w2), axis = 0)
         self.bas_fun = b
         self.ai = np.zeros((M, 1))
         self.zi = np.zeros((M, 1))
@@ -259,11 +266,64 @@ class nn:
             self.w2 = w_new[self.dim*self.neurons:w_new.shape[0], 0]
             cont = cont + 1
 
-        return np.transpose(super_Y), super_W
+        return np.transpose(super_Y)
 
     def debug(self):
         print self.w2
         print self.wmat2
+
+
+def crossValidation(X, T, nclass, neu_net, valid_num = 5):
+    N = len(X[:, 0])
+    Nvalid = (N/valid_num)
+    Ntest = N - Nvalid
+    index = np.random.permutation(N)
+    #print Ntest
+    l = 0
+    r = Nvalid
+    test_acc = np.zeros(valid_num)
+    for i in range(0, valid_num):
+
+        Xtrain = []
+        Ttrain = []
+        if l == 0:
+            Xtrain = X[index[r:N], :]
+            Ttrain = T[index[r:N], :]
+        else:
+            if(r < N):
+                Xtrain = np.concatenate((X[index[0:l], :],X[index[r: N], :]))
+                Ttrain = np.concatenate((T[index[0:l], :],T[index[r: N], :]))
+            else:
+                Xtrain = X[index[0:l], :]
+                Ttrain = T[index[0:l], :]
+
+
+        Xvalid = X[index[l:r], :]
+        Tvalid = T[index[l:r], :]
+
+        l = r
+        r += Nvalid
+
+        neu_net.w1 = neu_net.iniw1
+        neu_net.w2 = neu_net.iniw2
+        Xtrain = np.transpose(Xtrain)
+        Ttrain = np.transpose(Ttrain)
+        Xvalid = np.transpose(Xvalid)
+        Tvalid = np.transpose(Tvalid)
+        #print 'puta: ', Xtrain.shape, Ttrain.shape
+        neu_net.process(Xtrain, Ttrain)
+        Yestim = neu_net.forwardPropagation(Xvalid)
+        Yestim = np.transpose(Yestim)
+        Yestim = extractMax(Yestim, Yestim.shape[1])
+        tmp_acum = evalAccuracy(Yestim, np.transpose(Tvalid), Yestim.shape[1])
+        test_acc[i] = tmp_acum
+
+
+    acc, desv = meanDesvCacl(test_acc)
+    print 'Accuracy: ', acc, ' Standard Deviation', desv, ' Maximum accuracy: ', np.amax(test_acc)
+    print '---------------------------------------------------------------'
+
+
 
 '''
 # FIRST TOY DATA SET------------------------------------------------------------
@@ -332,6 +392,7 @@ def assignVar(N):
     return np.matrix(XX), np.matrix(e)
 
 XX, T = assignVar(len(data_iris[:,1]))
+
 XX = np.transpose(XX)
 T = np.transpose(T)
 
@@ -340,20 +401,9 @@ XX[1,:] = normalize_arr_min_max(XX[1,:])
 XX[2,:] = normalize_arr_min_max(XX[2,:])
 XX[3,:] = normalize_arr_min_max(XX[3,:])
 XX[4,:] = normalize_arr_min_max(XX[4,:])
+mneural = nn(XX.shape[0] - 1, 8, 3, 0.1, 'sig')
+crossValidation(np.transpose(XX), np.transpose(T), mneural.outs, mneural, 5)
 
-#print X,T
-#print np.amax(XX[1,:]), np.amin(XX[1,:])
-#print np.amax(XX[2,:]), np.amin(XX[2,:])
-#print np.amax(XX[3,:]), np.amin(XX[4,:])
-#print np.amax(XX[4,:]), np.amin(XX[3,:])
-
-#T = T[0,:]
-#X = XX[0:3,:]
-#X[2,:] = XX[3,:]
-#print XX.shape, T.shape
-mneural = nn(XX.shape[0] - 1, 8, 3, 'sig')
-Yestim, w_estim = mneural.process(XX, T)
-Yestim = extractMax(Yestim, Yestim.shape[1])
 #print Yestim
 #print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
 
@@ -365,6 +415,7 @@ plt.plot(X[50:150,1], X[50:150,2], 'rx')
 plt.show()
 '''
 # THIRD DATA SET: VEHICLES------------------------------------------------------
+
 file = open('all_data_sorted.data', 'r')
 table = [row.strip().split(' ') for row in file]
 data = np.matrix(table)
@@ -391,15 +442,20 @@ def assignVar(N):
     return np.matrix(XX), np.matrix(e)
 
 X, T = assignVar(len(data[:,1]))
-X = np.transpose(X)
-T = np.transpose(T)
-#T = T[0,:]
+print 'Accuracy for multiple binary classifiers: '
+mneural = nn(X.shape[1] - 1, 7, 4, 0.01, 'sig')
+crossValidation(X,T,mneural.outs, mneural, 5)
+
+#X = np.transpose(X)
+#T = np.transpose(T)
+#mneural = nn(X.shape[0] - 1, 5, 4, 0.01, 'sig')
 #print X.shape, T.shape
-mneural = nn(X.shape[0] - 1, 5, 4, 0.01, 'sig')
-Yestim, w_estim = mneural.process(X, T)
-Yestim = extractMax(Yestim, Yestim.shape[1])
-#print Yestim
-print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
+#mneural.process(X, T)
+#Yestim = extractMax(Yestim, Yestim.shape[1])
+#print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
+
+
+
 '''
 X = np.transpose(X)
 
@@ -430,4 +486,5 @@ plt.plot(x12, x13, 'yo')
 plt.plot(x22, x23, 'ro')
 plt.plot(x32, x33, 'go')
 plt.plot(x42, x43, 'bo')
-plt.show()'''
+plt.show()
+'''
