@@ -33,7 +33,7 @@ def normalize_arr_min_max(x):
 def softMax(z):
     nume = np.exp(z)
     denom = np.sum(nume)
-    ret = nume / denom
+    ret = nume*(1.0/denom)
     return ret
 
 def extractMax(Yestim, nclass):
@@ -150,9 +150,9 @@ class nn:
         ret = ret + 0.001
         return ret
 
-    def cost_fun_eval(self, xx, T):
+    def cost_fun_eval(self, xx, T, Y):
         if(self.tp == 'clas'):
-            Y = self.forwardPropagation(xx)
+            #Y = self.forwardPropagation(xx)
             tmp1 = np.multiply(np.log(Y), T)
             tmp2 = np.multiply(np.log((1.0 - Y) + 0.001), (1.0 - T))
             ret = tmp1 + tmp2
@@ -160,9 +160,20 @@ class nn:
                 ret = np.sum(ret, axis = 1)
             ret = np.sum(ret)
             return -ret
+        elif(self.tp == 'mult_clas'):
+            #for i in range(0, Y.shape[1]):
+                #Y[:,i] = softMax(Y[:,i])
+            ret = np.transpose(T)*Y
+            ret = np.diagonal(ret)
+            ret = np.sum(ret)
+            #Y = np.transpose(Y)
+            #print np.sum(Y, axis = 0)
+            return -ret
 
 
     def computeDelta2(self, Y, T):
+        #if(self.tp == 'mult_clas'):
+        #    return (Y - T)*(1.0/Y.shape[1])
         return Y - T
 
     def computeDelta1(self, Y, T):
@@ -171,14 +182,8 @@ class nn:
             tmp = Y - T
             tmp = np.transpose(tmp)*self.wmat2
         elif(self.tp == 'mult_clas' and self.outs > 1):
-            tmp1 = np.transpose(Y)*self.wmat2
-            #print tmp1.shape, self.wmat2.shape
-            for i in range(0, tmp1.shape[0]):
-                mio = tmp1[i,:] - self.wmat2
-                mio = np.sum(mio, axis = 0)
-                tmp1[i,:] = mio
-            #print tmp1.shape
-            tmp = tmp1
+            tmp = Y - T
+            tmp = np.transpose(tmp)*self.wmat2
         elif(self.tp == 'reg'):
             tmp = T - Y
             tmp = np.transpose(tmp)*self.wmat2
@@ -192,7 +197,7 @@ class nn:
             h_der = np.divide((np.exp(self.ai) - np.exp(-self.ai)),(np.exp(self.ai) + np.exp(-self.ai)))
             h_der = 1.0 - np.square(h_der)
         #print 'delta1'
-        #print h_der.shape, tmp.shape
+        #print 'jeje', h_der.shape, tmp.shape
         return np.multiply(h_der,np.transpose(tmp))
 
     def forwardPropagation(self, xx):
@@ -210,9 +215,9 @@ class nn:
         elif(self.tp == 'mult_clas'):
             for i in range(0, Y.shape[1]):
                 Y[:,i] = softMax(Y[:,i])
-            print np.sum(Y, axis = 0)
+            #print np.sum(Y, axis = 0)
         #print Y
-        Y = Y + 0.001
+        #Y = Y + 0.001
         return Y
 
     def errorGradient(self, xx, Y, T):
@@ -252,7 +257,8 @@ class nn:
         super_W = 0.0
         while(cont < 1000):
             Y = self.forwardPropagation(xx)
-            tm_cost = self.cost_fun_eval(xx, T)
+            tm_cost = self.cost_fun_eval(xx, T, Y)
+            #print tm_cost
             if(tm_cost < mmenor):
                 mmenor = tm_cost
                 super_Y = Y
@@ -266,6 +272,7 @@ class nn:
             self.w2 = w_new[self.dim*self.neurons:w_new.shape[0], 0]
             cont = cont + 1
 
+        #print ' '
         return np.transpose(super_Y)
 
     def debug(self):
@@ -310,11 +317,12 @@ def crossValidation(X, T, nclass, neu_net, valid_num = 5):
         Ttrain = np.transpose(Ttrain)
         Xvalid = np.transpose(Xvalid)
         Tvalid = np.transpose(Tvalid)
-        #print 'puta: ', Xtrain.shape, Ttrain.shape
         neu_net.process(Xtrain, Ttrain)
         Yestim = neu_net.forwardPropagation(Xvalid)
         Yestim = np.transpose(Yestim)
         Yestim = extractMax(Yestim, Yestim.shape[1])
+        #print Yestim
+        #print ' '
         tmp_acum = evalAccuracy(Yestim, np.transpose(Tvalid), Yestim.shape[1])
         test_acc[i] = tmp_acum
 
@@ -401,7 +409,10 @@ XX[1,:] = normalize_arr_min_max(XX[1,:])
 XX[2,:] = normalize_arr_min_max(XX[2,:])
 XX[3,:] = normalize_arr_min_max(XX[3,:])
 XX[4,:] = normalize_arr_min_max(XX[4,:])
-mneural = nn(XX.shape[0] - 1, 8, 3, 0.1, 'sig')
+mneural = nn(XX.shape[0] - 1, 7, 3, 0.01, 'sig', 'mult_clas')
+#Yestim = mneural.process(XX, T)
+#Yestim = extractMax(Yestim, Yestim.shape[1])
+#print Yestim
 crossValidation(np.transpose(XX), np.transpose(T), mneural.outs, mneural, 5)
 
 #print Yestim
@@ -415,7 +426,7 @@ plt.plot(X[50:150,1], X[50:150,2], 'rx')
 plt.show()
 '''
 # THIRD DATA SET: VEHICLES------------------------------------------------------
-
+'''
 file = open('all_data_sorted.data', 'r')
 table = [row.strip().split(' ') for row in file]
 data = np.matrix(table)
@@ -443,7 +454,7 @@ def assignVar(N):
 
 X, T = assignVar(len(data[:,1]))
 print 'Accuracy for multiple binary classifiers: '
-mneural = nn(X.shape[1] - 1, 7, 4, 0.01, 'sig')
+mneural = nn(X.shape[1] - 1, 7, 4, 0.01, 'sig', 'mult_clas')
 crossValidation(X,T,mneural.outs, mneural, 5)
 
 #X = np.transpose(X)
@@ -456,7 +467,7 @@ crossValidation(X,T,mneural.outs, mneural, 5)
 
 
 
-'''
+
 X = np.transpose(X)
 
 x11 = X[0:104,1]

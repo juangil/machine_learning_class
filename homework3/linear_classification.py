@@ -74,7 +74,7 @@ def extractMax(Yestim, nclass):
                 Yestim[i,j] = 0.
     return Yestim
 
-    # Evaluationg accuracy of a preditcion
+    # Evaluating accuracy of a preditcion
 def evalAccuracy(Yestim, Tvalid, nclass):
     true_positives = np.array([0.,0.,0.])
     true_negatives = np.array([0.,0.,0.])
@@ -99,7 +99,7 @@ def evalAccuracy(Yestim, Tvalid, nclass):
 # Several learners------------------------------------------------------------
 
     # Least squares
-def msEstim(X,T):    
+def msEstim(X,T):
     return (np.linalg.inv(np.transpose(X)*X)) * (np.transpose(X)*T)
 
     # Generative models
@@ -200,15 +200,15 @@ def logRegEstim(X,T, Xtest):
 # Cross validation -----------------------------------------------------------
 def evaluate(Xtrain, Xtest, Ttrain, Ttest, nclass):
     # Least squares estimation
-    
-    Wmse = msEstim(Xtrain,Ttrain)    
+
+    Wmse = msEstim(Xtrain,Ttrain)
     Yestim = np.transpose(Wmse)*np.transpose(Xtest)
     Yestim = np.transpose(Yestim)
     Yestim = extractMax(Yestim, nclass)
     lsq_err, lsq_err1 = evalAccuracy(Yestim, Ttest, nclass)
 
-    # Generative model classification    
-    
+    # Generative model classification
+
     Wgme = gmEstim(Xtrain, Ttrain, nclass)
     Yestim_gme = Wgme*np.transpose(Xtest)
     for i in range(0, Yestim_gme.shape[1]):
@@ -226,10 +226,10 @@ def evaluate(Xtrain, Xtest, Ttrain, Ttest, nclass):
     log_reg_err, log_reg_err1 = evalAccuracy(Yestim_log_reg, Ttest, nclass)
 
     # setting the class 1 accuracy
-    class_1_err = np.array([lsq_err1, gme_err1, log_reg_err1])    
+    class_1_err = np.array([lsq_err1, gme_err1, log_reg_err1])
 
     return lsq_err, gme_err, log_reg_err, class_1_err
-    
+
 
 def crossValidation(X, T, nclass, valid_num = 5):
     N = len(X[:, 0])
