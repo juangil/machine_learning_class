@@ -7,6 +7,8 @@ from pylab import *
 from matplotlib import cm
 import scipy
 
+np.random.seed(2)
+
 def meanDesvCacl(z):
     mmean = np.sum(z)/len(z)
     desv = np.sum((z - mmean)*(z - mmean))/len(z)
@@ -281,6 +283,7 @@ class nn:
             cont = cont + 1
 
         #print ' '
+        #print super_W
         return np.transpose(super_Y)
 
     def debug(self):
@@ -413,10 +416,12 @@ XX = np.transpose(XX)
 T = np.transpose(T)
 
 # Normalization
+
 XX[1,:] = normalize_arr_min_max(XX[1,:])
 XX[2,:] = normalize_arr_min_max(XX[2,:])
 XX[3,:] = normalize_arr_min_max(XX[3,:])
 XX[4,:] = normalize_arr_min_max(XX[4,:])
+
 
 print 'IRIS DATA-SET CLASSIFICACION WITH NEURAL NETWORKS'
 
@@ -436,6 +441,9 @@ mneural = nn(XX.shape[0] - 1, 7, 3, 0.01, 'sig', 'reg')
 #print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
 print 'Cross validation with multiple regression: '
 crossValidation(np.transpose(XX), np.transpose(T), mneural.outs, mneural, 5)
+print 'm ', mneural.neurons
+print 'l.r ', mneural.lr
+print 'f.b ', mneural.bas_fun
 
 '''
 X = np.transpose(X)
