@@ -255,6 +255,8 @@ class nn:
         mmenor = 100000000.0
         super_Y = 0.0
         super_W = 0.0
+        super_w1 = 0.0
+        super_w2 = 0.0
         while(cont < 1000):
             Y = self.forwardPropagation(xx)
             tm_cost = self.cost_fun_eval(xx, T, Y)
@@ -263,6 +265,8 @@ class nn:
                 mmenor = tm_cost
                 super_Y = Y
                 super_W = self.W
+                super_w1 = self.w1
+                super_w2 = self.w2
             #print np.sum(Y[:,0])
             gradient_w = self.errorGradient(xx, Y, T)
             w_new = self.W - (self.lr*gradient_w)
@@ -272,7 +276,9 @@ class nn:
             self.w2 = w_new[self.dim*self.neurons:w_new.shape[0], 0]
             cont = cont + 1
 
-        #print ' '
+        #print super_W
+        self.w1 = super_w1
+        self.w2 = super_w2
         return np.transpose(super_Y)
 
     def debug(self):
@@ -319,11 +325,16 @@ def crossValidation(X, T, nclass, neu_net, valid_num = 5):
         Tvalid = np.transpose(Tvalid)
         neu_net.process(Xtrain, Ttrain)
         Yestim = neu_net.forwardPropagation(Xvalid)
+        print neu_net.wmat1
+        print neu_net.wmat2
         Yestim = np.transpose(Yestim)
         Yestim = extractMax(Yestim, Yestim.shape[1])
         #print Yestim
         #print ' '
+        #print neu_net.super_W
         tmp_acum = evalAccuracy(Yestim, np.transpose(Tvalid), Yestim.shape[1])
+        print tmp_acum
+        print ' '
         test_acc[i] = tmp_acum
 
 
@@ -371,7 +382,7 @@ plt.show()
 '''
 
 # SECOND DATASET: IRIS ---------------------------------------------------------
-'''
+
 file = open('iris.data', 'r')
 table = [row.strip().split(',') for row in file]
 data_iris = np.matrix(table)
@@ -414,7 +425,7 @@ mneural = nn(XX.shape[0] - 1, 7, 3, 0.01, 'sig', 'mult_clas')
 #Yestim = extractMax(Yestim, Yestim.shape[1])
 #print Yestim
 crossValidation(np.transpose(XX), np.transpose(T), mneural.outs, mneural, 5)
-
+'''
 #print Yestim
 #print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
 
