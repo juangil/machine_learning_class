@@ -258,7 +258,7 @@ class nn:
             else:
                 raise Exception
         except Exception as inst:
-            print "Holy Shit!!!, the dimensions between real and computed outputs are not equal"
+            print "Noo!!, the dimensions between real and computed outputs are not equal"
             return
         cont = 0
         Y = 0
