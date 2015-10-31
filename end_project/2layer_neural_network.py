@@ -382,7 +382,7 @@ plt.show()
 '''
 
 # SECOND DATASET: IRIS ---------------------------------------------------------
-
+'''
 file = open('iris.data', 'r')
 table = [row.strip().split(',') for row in file]
 data_iris = np.matrix(table)
@@ -425,7 +425,7 @@ mneural = nn(XX.shape[0] - 1, 7, 3, 0.01, 'sig', 'mult_clas')
 #Yestim = extractMax(Yestim, Yestim.shape[1])
 #print Yestim
 crossValidation(np.transpose(XX), np.transpose(T), mneural.outs, mneural, 5)
-'''
+
 #print Yestim
 #print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
 
@@ -437,7 +437,7 @@ plt.plot(X[50:150,1], X[50:150,2], 'rx')
 plt.show()
 '''
 # THIRD DATA SET: VEHICLES------------------------------------------------------
-'''
+
 file = open('all_data_sorted.data', 'r')
 table = [row.strip().split(' ') for row in file]
 data = np.matrix(table)
@@ -464,9 +464,9 @@ def assignVar(N):
     return np.matrix(XX), np.matrix(e)
 
 X, T = assignVar(len(data[:,1]))
-print 'Accuracy for multiple binary classifiers: '
-mneural = nn(X.shape[1] - 1, 7, 4, 0.01, 'sig', 'mult_clas')
-crossValidation(X,T,mneural.outs, mneural, 5)
+#print 'Accuracy for multiple binary classifiers: '
+#mneural = nn(X.shape[1] - 1, 7, 4, 0.01, 'sig', 'mult_clas')
+#crossValidation(X,T,mneural.outs, mneural, 5)
 
 #X = np.transpose(X)
 #T = np.transpose(T)
@@ -479,7 +479,7 @@ crossValidation(X,T,mneural.outs, mneural, 5)
 
 
 
-X = np.transpose(X)
+#X = np.transpose(X)
 
 x11 = X[0:104,1]
 x12 = X[0:104,2]
@@ -496,17 +496,14 @@ x33 = X[190:606,3]
 x41 = X[606:841,1]
 x42 = X[606:841,2]
 x43 = X[606:841,3]
+print x11.shape
 
 plt.figure(1)
-plt.plot(x11, x13, 'yo')
-plt.plot(x21, x23, 'ro')
-plt.plot(x31, x33, 'go')
-plt.plot(x41, x43, 'bo')
-
-plt.figure(2)
-plt.plot(x12, x13, 'yo')
-plt.plot(x22, x23, 'ro')
-plt.plot(x32, x33, 'go')
-plt.plot(x42, x43, 'bo')
+y_dot, = plt.plot(x11, x12, 'yo')
+r_dot, = plt.plot(x21, x22, 'ro')
+g_dot, = plt.plot(x31, x32, 'go')
+b_dot, = plt.plot(x41, x42, 'bo')
+plt.ylabel('largo')
+plt.xlabel('ancho')
+plt.legend([r_dot, y_dot, g_dot, b_dot], ["Taxi", "Vehiculos grandes", "Particulares", "Motocicletas"])
 plt.show()
-'''
