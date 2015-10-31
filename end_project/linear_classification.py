@@ -13,6 +13,7 @@ table = [row.strip().split(' ') for row in file]
 data = np.matrix(table)
 label = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 2}
 label_biclass_1 = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 1}
+np.random.seed(2);
 #print data
 
 # Some utility functions------------------------------------------------------
@@ -282,7 +283,7 @@ def crossValidation(X, T, nclass, valid_num = 5):
 
 
 X, T = assignVar(len(data[:,1]))
-print T
+#print T
 #print evaluate(X,X,T,T, 3)
 X[:,0] = X[:,0]
 X[:,1] = X[:,1]
@@ -304,6 +305,8 @@ x41 = X[606:841,1]
 x42 = X[606:841,2]
 x43 = X[606:841,3]
 
+'''
+
 plt.figure(1)
 plt.plot(x11, x12, 'yo')
 plt.plot(x21, x22, 'ro')
@@ -312,7 +315,6 @@ plt.plot(x41, x42, 'bo')
 plt.show()
 
 
-'''
 plt.figure(1)
 plt.subplot(231)
 plt.plot(x1[0:49], x2[0:49], 'bo')

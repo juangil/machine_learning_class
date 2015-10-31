@@ -7,11 +7,16 @@ from pylab import *
 from matplotlib import cm
 import scipy
 
+# Comment this line if you don't want numpy to take a fixed seed to random utilities
+np.random.seed(2)
+
+# Function to compute mean and standar deviation
 def meanDesvCacl(z):
     mmean = np.sum(z)/len(z)
     desv = np.sum((z - mmean)*(z - mmean))/len(z)
     return mmean, desv
 
+# Gaussian normalization
 def normalize_arr_gauss(x):
     msum = np.sum(x)
     N = x.shape[1]
@@ -23,6 +28,7 @@ def normalize_arr_gauss(x):
     x = np.divide(x, desv)
     return x
 
+# min max normalization
 def normalize_arr_min_max(x):
     b = x[0,np.argmax(x)]
     a = x[0,np.argmin(x)]
@@ -30,12 +36,14 @@ def normalize_arr_min_max(x):
     x = np.divide(x, b - a)
     return x
 
+# Softmax
 def softMax(z):
     nume = np.exp(z)
     denom = np.sum(nume)
     ret = nume*(1.0/denom)
     return ret
 
+# Function for extracting the class that an instance belongs to
 def extractMax(Yestim, nclass):
     if(nclass == 1):
         for i in range(0, len(Yestim[:,0])):
@@ -69,6 +77,7 @@ def extractMaxDummy(Yestim, nclass):
 
     return Yestim
 
+# Accuracy evaluation for a prediction
 def evalAccuracy(Yestim, Tvalid, nclass):
     #print Yestim.shape, Tvalid.shape
     true_positives = np.zeros(nclass)
@@ -90,6 +99,18 @@ def evalAccuracy(Yestim, Tvalid, nclass):
     return ret
 
 # Neural network class ---------------------------------------------------------
+'''
+ this neural network has all the elements neccesary to build a two layer neural network, briefly has the next methods:
+ - weight1ToMat: takes the weight vector and covnerts it into a matrix
+ - activ1eval: Ealuates the activations of the first hidden layer
+ - basFunEval: Evaluates the activations funcions after the first hidden layer activation
+ - cost_fun_eval: Evaluates the cost function for each specifica problem
+ - computeDelta2: Evaluates the first part of derivatives of the cost function respect to second hidden layer weights
+ - computeDelta1 Evaluates the first part of derivatives of the cost function respect to first hidden layer weights
+ - forwardPropagation: Computes a prediction with a given set of weights and an input vector
+ - errorGradient: Computes the gradient of the cost function
+ - process: Performs the gradient descent algorithm
+ '''
 class nn:
     def __init__(self, d, M, K, lr, b = 'sig', p = 'clas'):
         self.dim = d + 1 # input
@@ -248,7 +269,7 @@ class nn:
             else:
                 raise Exception
         except Exception as inst:
-            print "Holy Shit!!!, the dimensions between real and computed outputs are not equal"
+            print "Nooo!!!, the dimensions between real and computed outputs are not equal"
             return
         cont = 0
         Y = 0
@@ -325,16 +346,16 @@ def crossValidation(X, T, nclass, neu_net, valid_num = 5):
         Tvalid = np.transpose(Tvalid)
         neu_net.process(Xtrain, Ttrain)
         Yestim = neu_net.forwardPropagation(Xvalid)
-        print neu_net.wmat1
-        print neu_net.wmat2
+        #print neu_net.wmat1
+        #print neu_net.wmat2
         Yestim = np.transpose(Yestim)
         Yestim = extractMax(Yestim, Yestim.shape[1])
         #print Yestim
         #print ' '
         #print neu_net.super_W
         tmp_acum = evalAccuracy(Yestim, np.transpose(Tvalid), Yestim.shape[1])
-        print tmp_acum
-        print ' '
+        #print tmp_acum
+        #print ' '
         test_acc[i] = tmp_acum
 
 
@@ -344,100 +365,9 @@ def crossValidation(X, T, nclass, neu_net, valid_num = 5):
 
 
 
-'''
-# FIRST TOY DATA SET------------------------------------------------------------
-mdata = scipy.io.loadmat('ejemplo_class_uno.mat')
-X = np.array(mdata['X'])
-t = np.array(mdata['t'])
-for i in range(0, t.shape[0]):
-    if(t[i,0] == -1):
-        t[i,0] = 0.0
-    else:
-        t[i,0] = 1.0
 
-t = np.matrix(t)
-t = np.transpose(t)
-tmp = np.ones(X.shape[0])
-XX = np.zeros((X.shape[0], X.shape[1] + 1))
-XX[:,1:] = X
-XX[:,0] = tmp
-XX = np.matrix(XX)
-XX = np.transpose(XX)
-print XX, t
-#print np.amax(XX[1,:]), np.amin(XX[1,:])
-#print np.amax(XX[2,:]), np.amin(XX[2,:])
-#print ' '
-#print np.transpose(XX), np.transpose(t)
-mneural = nn(XX.shape[0] - 1, 2, 1, 'tanh')
-#print ' '
-print mneural.process(XX, t)
-#print XX, t
-XX = np.transpose(XX)
-t = np.transpose(t)
-
-plt.figure(1)
-plt.plot(XX[0:49,1], XX[0:49,2], 'bo')
-plt.plot(XX[50:100,1], XX[50:100,2], 'rx')
-plt.show()
-'''
-
-# SECOND DATASET: IRIS ---------------------------------------------------------
-'''
-file = open('iris.data', 'r')
-table = [row.strip().split(',') for row in file]
-data_iris = np.matrix(table)
-label = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 2}
-label_biclass_1 = {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 1}
-
-def assignVar(N):
-    a = np.zeros((N,1))
-    b = np.zeros((N,1))
-    c = np.zeros((N,1))
-    d = np.zeros((N,1))
-    e = np.zeros((N,3))
-    for i in range(0, N):
-        tmp = data_iris[:,0]
-        a[i,0] = float(tmp[i,0])
-        tmp = data_iris[:,1]
-        b[i,0] = float(tmp[i,0])
-        tmp = data_iris[:,2]
-        c[i,0] = float(tmp[i,0])
-        tmp = data_iris[:,3]
-        d[i,0] = float(tmp[i,0])
-        tmp = data_iris[:,4]
-        e[i, label[tmp[i,0]]] = 1.
-    unos=np.ones((N,1))
-    XX = np.concatenate((unos,a,b,c,d),1)
-    return np.matrix(XX), np.matrix(e)
-
-XX, T = assignVar(len(data_iris[:,1]))
-
-XX = np.transpose(XX)
-T = np.transpose(T)
-
-# Normalization
-XX[1,:] = normalize_arr_min_max(XX[1,:])
-XX[2,:] = normalize_arr_min_max(XX[2,:])
-XX[3,:] = normalize_arr_min_max(XX[3,:])
-XX[4,:] = normalize_arr_min_max(XX[4,:])
-mneural = nn(XX.shape[0] - 1, 7, 3, 0.01, 'sig', 'mult_clas')
-#Yestim = mneural.process(XX, T)
-#Yestim = extractMax(Yestim, Yestim.shape[1])
-#print Yestim
-crossValidation(np.transpose(XX), np.transpose(T), mneural.outs, mneural, 5)
-
-#print Yestim
-#print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
-
-X = np.transpose(X)
-T = np.transpose(T)
-plt.figure(2)
-plt.plot(X[0:49,1], X[0:49,2], 'bo')
-plt.plot(X[50:150,1], X[50:150,2], 'rx')
-plt.show()
-'''
-# THIRD DATA SET: VEHICLES------------------------------------------------------
-
+# DATA SET: VEHICLES------------------------------------------------------
+# Data reading
 file = open('all_data_sorted.data', 'r')
 table = [row.strip().split(' ') for row in file]
 data = np.matrix(table)
@@ -464,22 +394,21 @@ def assignVar(N):
     return np.matrix(XX), np.matrix(e)
 
 X, T = assignVar(len(data[:,1]))
-#print 'Accuracy for multiple binary classifiers: '
-#mneural = nn(X.shape[1] - 1, 7, 4, 0.01, 'sig', 'mult_clas')
-#crossValidation(X,T,mneural.outs, mneural, 5)
-
-#X = np.transpose(X)
-#T = np.transpose(T)
-#mneural = nn(X.shape[0] - 1, 5, 4, 0.01, 'sig')
-#print X.shape, T.shape
-#mneural.process(X, T)
-#Yestim = extractMax(Yestim, Yestim.shape[1])
-#print evalAccuracy(Yestim, np.transpose(T), Yestim.shape[1])
 
 
+# Parameter assignation, if you want to assign a parameter value, change this part
+param_m = 7          # Amount of activations
+param_lr = 0.01      # Learning rate
+param_bs = 'sig'     # Type of basis function or activation function
+prob2solve = 'clas'  # Type of problem you want to solve
 
+# Object neural network instance, dont touch any of this coo
+print 'Accuracy for multiple ', prob2solve, ': '
+mneural = nn(X.shape[1] - 1, param_m, 4, param_lr, param_bs, prob2solve)
+crossValidation(X,T,mneural.outs, mneural, 5)
 
-#X = np.transpose(X)
+'''
+X = np.transpose(X)
 
 x11 = X[0:104,1]
 x12 = X[0:104,2]
@@ -507,3 +436,4 @@ plt.ylabel('largo')
 plt.xlabel('ancho')
 plt.legend([r_dot, y_dot, g_dot, b_dot], ["Taxi", "Vehiculos grandes", "Particulares", "Motocicletas"])
 plt.show()
+'''
