@@ -176,6 +176,7 @@ def logRegEstim(X,T, Xtest):
         yy = np.transpose(logisFunc(yy))
         yy = yy
         Yestim = yy
+        print 'vida hpta: ', yy.shape, T.shape
         #print ' '
         R = np.zeros((N,N))
         for i in range(0,N):
@@ -274,6 +275,7 @@ def crossValidation(X, T, nclass, valid_num = 5):
         print ' '
         '''
         # calculating the accuracy for the ith validation for each method
+        print Xtrain.shape, Xvalid.shape, Ttrain.shape, Tvalid.shape
         err_lse_arr[i], err_gme_arr[i], err_log_arr[i], tmp = evaluate(Xtrain, Xvalid, Ttrain, Tvalid, nclass)
         err_class_1 = err_class_1 + tmp
 
@@ -303,9 +305,11 @@ def crossValidation(X, T, nclass, valid_num = 5):
 
 
 X, T = assignVar(len(data[:,1]))
+print X.shape,T.shape
 #evaluate(X,X,T,T, 3)
 crossValidation(X,T,3)
 
+'''
 x1 = X[:,1]
 x2 = X[:,2]
 x3 = X[:,3]
@@ -350,4 +354,4 @@ plt.ylabel('attribute 4')
 plt.plot(x3[0:49], x4[0:49], 'bo')
 plt.plot(x3[50:99], x4[50:99], 'rx')
 plt.plot(x3[100:149], x4[100:149], 'g*')
-plt.show()
+plt.show()'''
