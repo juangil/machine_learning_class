@@ -1,4 +1,5 @@
 out
 out}
 *.avi
-
+HGP_inference_hand_test-checkpoint.ipynb
+*.amc
